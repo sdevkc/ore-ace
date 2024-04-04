@@ -1,6 +1,7 @@
 mod balance;
 mod busses;
 mod claim;
+mod cu_limits;
 #[cfg(feature = "admin")]
 mod initialize;
 mod mine;
@@ -13,12 +14,12 @@ mod update_admin;
 #[cfg(feature = "admin")]
 mod update_difficulty;
 mod utils;
-use tokio::sync::Barrier;
+
+use std::sync::Arc;
 
 use clap::{command, Parser, Subcommand};
 use solana_sdk::signature::Keypair;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Arc;
+
 struct Miner {
     pub keypair_private_key: Option<String>,
     pub priority_fee: u64,
@@ -164,11 +165,6 @@ async fn main() {
     let cluster = args.rpc;
     let miner = Arc::new(Miner::new(cluster.clone(), args.priority_fee, args.keypair));
 
-    // 4个并发的挖矿任务
-    let threads = 2;
-    let barrier = Arc::new(Barrier::new(threads + 1));
-    let counter = Arc::new(AtomicUsize::new(1));
-
     // Execute user command.
     match args.command {
         Commands::Balance(args) => {
@@ -184,24 +180,7 @@ async fn main() {
             miner.treasury().await;
         }
         Commands::Mine(args) => {
-            for _ in 0..threads {
-                let miner_clone = Arc::clone(&miner);
-                let barrier_clone = Arc::clone(&barrier);
-                let counter_clone = Arc::clone(&counter);
-
-                tokio::spawn(async move {
-                    let thread_id = counter_clone.fetch_add(1, Ordering::SeqCst);
-                    println!("线程开始: {:?}", thread_id);
-
-                    miner_clone.mine(args.threads).await;
-
-                    println!("线程完成: {:?}", thread_id);
-                    barrier_clone.wait().await;
-                });
-            }
-
-            barrier.wait().await;
-            println!("所有线程完成");
+            miner.mine(args.threads).await;
         }
         Commands::Claim(args) => {
             miner.claim(cluster, args.beneficiary, args.amount).await;
