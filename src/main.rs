@@ -165,7 +165,7 @@ async fn main() {
     let miner = Arc::new(Miner::new(cluster.clone(), args.priority_fee, args.keypair));
 
     // 4个并发的挖矿任务
-    let threads = 4;
+    let threads = 2;
     let barrier = Arc::new(Barrier::new(threads + 1));
     let counter = Arc::new(AtomicUsize::new(1));
 
