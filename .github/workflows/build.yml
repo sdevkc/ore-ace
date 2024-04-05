@@ -23,10 +23,6 @@ jobs:
               run: cargo build --release --verbose
             - name: Run tests
               run: cargo test --verbose
-            - name: List files
-              run: ls -l
-            - name: List files
-              run: ls -l ./target
 
             - name: Docker login
               run: docker login -u $DOCKER_USER -p $DOCKER_PASS ghcr.io
@@ -38,4 +34,3 @@ jobs:
               run: |
                   docker tag ghcr.io/$DOCKER_USER/$REPO_NAME:$TAG_NAME ghcr.io/$DOCKER_USER/$REPO_NAME:latest
                   docker push ghcr.io/$DOCKER_USER/$REPO_NAME:latest
-
